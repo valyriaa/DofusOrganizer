@@ -1,0 +1,23 @@
+{
+  "name": "core",
+  "version": "1.0.0",
+  "scripts": {
+    "install": "cd native && node-gyp rebuild",
+    "preinstall": "cd native && node-gyp configure"
+  },
+  "private": true,
+  "workspaces": [
+    "native/",
+    "match/"
+  ],
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {
+    "frida": "^17.5.1",
+    "frida-il2cpp-bridge": "^0.12.1",
+    "pngjs": "^7.0.0",
+    "native": "1.0.0",
+    "matcher": "1.0.0",
+    "node-addon-api": "^8.5.0"
+  }
+}

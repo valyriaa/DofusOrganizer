@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        html,
+        body {
+            pointer-events: none !important;
+        }
+
+        .chat-message {
+            position: relative;
+        }
+
+        .misc-group {
+            position: absolute;
+            left: calc(100% + 10px);
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            pointer-events: auto;
+            z-index: 5;
+        }
+
+        .misc-bubble {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            backdrop-filter: blur(4px);
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            /* background: transparent !important; */
+            backdrop-filter: blur(4px);
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-mask: radial-gradient(circle, white 99%, transparent 100%);
+            mask: radial-gradient(circle, white 99%, transparent 100%);
+            border: none;
+        }
+
+        .misc-bubble:hover {
+            transform: translateY(-2px);
+            transition: transform 120ms ease;
+        }
+
+        body {
+            background: transparent;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            user-select: none;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: row;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .chat-message {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .chat-message.user {
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+        }
+
+        .profile-bubble {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            overflow: hidden;
+            position: relative;
+            flex-shrink: 0;
+            cursor: grab;
+        }
+
+        .profile-bubble img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: auto;
+        }
+
+        .profile-bubble.turn-timer .timer-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+            pointer-events: none;
+        }
+
+        .timer-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.3);
+            stroke-width: 8;
+        }
+
+        .timer-fg {
+            fill: none;
+            stroke: url(#timerGradient);
+            stroke-width: 6;
+            stroke-linecap: round;
+            stroke-dasharray: 175.84;
+            stroke-dashoffset: 175.84;
+            filter: drop-shadow(0 0 8px #d8380783);
+            animation: turnTimer 30s linear infinite;
+        }
+
+        @keyframes turnTimer {
+            from {
+                stroke-dashoffset: 175.84;
+            }
+
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .profile-bubble.active-turn {
+            animation: shake 0.5s ease-in-out infinite;
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            25% {
+                transform: translate(-3px, 0) rotate(-2deg);
+            }
+
+            50% {
+                transform: translate(3px, 0) rotate(2deg);
+            }
+
+            75% {
+                transform: translate(-2px, 0) rotate(-1deg);
+            }
+
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+        }
+
+        .profile-bubble.turn-notification {
+            animation: pulseGlow 1s ease-in-out infinite;
+            filter: drop-shadow(0 0 12px #ff4c4c);
+        }
+
+        .syncronized {
+            color: #fff000;
+        }
+
+        .syncronized:before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            width: 100%;
+            height: 100%;
+            border: 3px solid transparent;
+            border-top: 3px solid #fff000;
+            border-right: 3px solid #fff000;
+            border-radius: 50%;
+            animation: animateC 2s linear infinite;
+        }
+
+        .profile-bubble.tab-active {
+            box-shadow: 0 0 21px 6px rgb(1, 107, 139)
+        }
+
+
+        @keyframes animateC {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes animate {
+            0% {
+                transform: rotate(45deg);
+            }
+
+            100% {
+                transform: rotate(405deg);
+            }
+        }
+
+        @keyframes pulseGlow {
+            0% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 8px #ff4c4c);
+            }
+
+            50% {
+                transform: scale(1.1);
+                filter: drop-shadow(0 0 16px #ff0000);
+            }
+
+            100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 8px #ff4c4c);
+            }
+        }
+
+        .bubble-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .bubble-dropdown .bubble-menu {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            opacity: 0;
+            pointer-events: none;
+            -webkit-tap-highlight-color: transparent;
+            background: transparent !important;
+            transition: opacity 0.2s ease;
+        }
+
+        .bubble-dropdown:hover .bubble-menu {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .bubble-menu .misc-bubble {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .misc-bubble.selected {
+            background: #1C274C;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .plus-icon,
+        .menu-icon {
+            margin-top: 8px;
+        }
+
+        .plus-icon,
+        .menu-icon:disabled {
+            font-size: 22px;
+            color: #353535;
+        }
+
+        .close-app.disabled {
+            color: #353535;
+            background: #353535;
+            pointer-events: none;
+        }
+
+        .mainbutton {
+            width: 64px;
+            height: 64px;
+            background: none;
+            border-radius: 100%;
+            border: none;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+            position: relative;
+        }
+
+        .mainbutton.is-hover {
+            box-shadow: linear-gradient(120deg, #7afffb, #79fcff, #75eaff, #6eccff, #67a4ff, #5f73ff, #7156ff, #9b4eff, #c547ff, #e940ff, #ff3cfc, #ff3bf2);
+            padding: 20px;
+            background-size: 180%;
+            transition: all 0.3s ease;
+        }
+
+        .mainbutton.disabled {
+            pointer-events: none;
+            animation: none !important;
+        }
+
+        .mainbutton.is-active {
+            transform: scale(0.9);
+            transition: all 0.05s ease;
+        }
+
+        .mainbutton::before {
+            position: absolute;
+            width: calc(100% + 20px);
+            height: calc(100% + 20px);
+            border: 1px solid rgba(255, 59, 242, 0.8);
+            border-radius: 100%;
+            content: "";
+            transition: all 0.3s ease;
+        }
+
+        .mainbutton.is-hover::before {
+            border: 1px solid rgba(122, 255, 251, 0.6);
+            width: calc(100% + 40px);
+            height: calc(100% + 40px);
+        }
+
+        .mainbutton.is-active::before {
+            width: calc(100% + 20px);
+            height: calc(100% + 20px);
+            transition: all 0.07s ease;
+        }
+
+        .mainbutton::after {
+            position: absolute;
+            width: calc(100% + 40px);
+            height: calc(100% + 40px);
+            border: 2px dashed rgba(255, 59, 242, 0.4);
+            box-shadow: 0px 0px 100px rgba(122, 255, 251, 0.1);
+            border-radius: 100%;
+            animation: rotate 30s linear infinite;
+            content: "";
+            transition: all 0.3s ease;
+        }
+
+        @keyframes rotate {
+            to {
+                transform: rotateZ(-360deg);
+            }
+        }
+
+        .mainbutton.is-hover::after {
+            border: 2px dashed rgba(122, 255, 251, 0.3);
+            width: calc(100% + 80px);
+            height: calc(100% + 80px);
+        }
+
+        .mainbutton.is-active::after {
+            width: calc(100% + 40px);
+            height: calc(100% + 40px);
+            transition: all 0.07s ease;
+        }
+
+        .mainbutton>svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            mix-blend-mode: overlay;
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+
+        .mainbutton i {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mainbutton i svg {
+            position: relative;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0px 0px 5px white);
+            mix-blend-mode: overlay;
+        }
+
+        .mainbutton.is-hover i svg {
+            animation: shake 0.5s linear infinite;
+        }
+
+        .stop-animation {
+            animation: none !important;
+        }
+
+        @keyframes shake {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            25% {
+                transform: rotate(15deg);
+            }
+
+            75% {
+                transform: rotate(-15deg);
+            }
+        }
+
+        .mainbutton span {
+            position: absolute;
+            top: -7px;
+            right: -11px;
+            width: 40px;
+            height: 40px;
+            border-radius: 100%;
+            background-color: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+
+        .mainbutton.is-hover span {
+            background-color: #333;
+        }
+
+        .mainbutton span p {
+            font: normal normal 400 14pt / 2cap "Roboto Mono", monospace;
+            color: #ccc;
+            margin: 0;
+            position: relative;
+            left: 1px;
+        }
+
+        .mainbutton.is-hover~aside {
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .misc-bubble,
+        .chat-message .bubble-menu .mainbutton,
+        .bubble-menu * {
+            pointer-events: auto !important;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="chat-container">
+        <div class="bubble-dropdown" style="margin-left: 25px;">
+            <div class="chat-message user">
+                <button id="startSyncBtn" class="movable-bubble mainbutton" type="button">
+                    <img width="94px" src="../main/square_90.png" />
+                </button>
+            </div>
+            <div class="bubble-menu">
+                <button id="settingsBtn" class="misc-bubble menu-icon">
+                    <img src="../settings.png" width="38px" height="38px" />
+                </button>
+                <button onclick="closeApp(event)" class="misc-bubble close-app">❌</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./main.js"></script>
+    <script>
+        const startSyncBtn = document.getElementById('startSyncBtn');
+
+        window.appContext.ipcRenderer.on('event', async function (_, event) {
+            if (!event) return;
+            return Main(event);
+        })
+
+        settingsBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.appContext.showSettings();
+        });
+
+        startSyncBtn.addEventListener("dblclick", async function (e) {
+            if (e.target.disabled) {
+                return;
+            }
+            try {
+                e.target.disabled = true;
+                e.target.classList.add('disabled');
+                if (window.isSyncronized) {
+                    await window.appContext.syncPlay(false);
+                    return;
+                }
+                const sync_result = await window.appContext.syncPlay(true);
+                if (!sync_result.sync) {
+                    const { error } = sync_result;
+                    await window.appContext.notify('info', error);
+                }
+            }
+            finally {
+                e.target.disabled = false;
+                e.target.classList.remove('disabled');
+            }
+        })
+
+
+        function closeApp(ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (ev.currentTarget.disabled) return;
+            let elem = ev.currentTarget;
+            elem.classList.add('disabled');
+           elem.disabled = true;
+            const mainBtn = document.querySelector('.mainbutton');
+            mainBtn.classList.add('disabled');
+            return window.appContext.closeApp().then(() => {
+                elem.classList.remove('disabled');
+                mainBtn.classList.remove('disabled');
+                elem.disabled = false;
+            });
+        }
+
+        function setupMovableBubbles() {
+            const bubbles = document.querySelectorAll('.movable-bubble');
+            for (let bub of bubbles) {
+                bub.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.isDragging = true;
+                    window.lastX = e.screenX;
+                    window.lastY = e.screenY;
+                });
+            }
+
+            window.addEventListener('mousemove', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (!window.isDragging) return;
+
+                const dx = e.screenX - lastX;
+                const dy = e.screenY - lastY;
+                window.lastX = e.screenX;
+                window.lastY = e.screenY;
+                window.appContext.moveWindow(dx, dy);
+            });
+
+            window.addEventListener('mouseup', () => {
+                window.isDragging = false;
+            });
+        }
+
+        function processScreenshot(event, id) {
+            event.preventDefault();
+            event.stopPropagation();
+            return window.appContext.processImage(id);
+        }
+
+        setupMovableBubbles();
+    </script>
+    <script>
+        (function () {
+            const TARGET_SELECTOR = '.misc-bubble, .bubble-menu, .chat-message, .mainbutton';
+            let lastState = false;
+            let lastClientX = -1;
+            let lastClientY = -1;
+
+            const cbArgs = [
+                (e) => {
+                    lastClientX = e.clientX;
+                    lastClientY = e.clientY;
+                },
+                { passive: true }
+            ]
+
+            function checkPointer() {
+                if (lastClientX < 0 || lastClientY < 0) {
+                    setClickable(false);
+                    requestAnimationFrame(checkPointer);
+                    return;
+                }
+
+                const el = document.elementFromPoint(lastClientX, lastClientY);
+
+
+                if (el && el.nodeType !== Node.ELEMENT_NODE) {
+                    el = el.parentElement;
+                }
+
+                const overTarget = el && el.closest && el.closest(TARGET_SELECTOR);
+
+                setClickable(!!overTarget);
+                requestAnimationFrame(checkPointer);
+            }
+
+            function setClickable(state) {
+                if (state === lastState) return;
+                lastState = state;
+                if (window.appContext) {
+                    window.appContext.setClickableArea(state);
+                }
+            }
+
+            window.addEventListener('pointermove', ...cbArgs);
+            window.addEventListener('mousemove', ...cbArgs);
+
+            requestAnimationFrame(checkPointer);
+        })();
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #controls {
+            background: #fff;
+            padding: 12px 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            -webkit-app-region: drag;
+            user-select: none;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            align-content: space-between;
+            flex-direction: row;
+        }
+
+        #controls input[type=file] {
+            padding: 6px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #fff;
+            transition: all 0.2s;
+        }
+
+        #controls input[type=file]:hover {
+            border-color: #1890ff;
+        }
+
+        #exp-openModalBtn {
+            padding: 11px 26px;
+            background-color: #1890ff;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-app-region: no-drag;
+        }
+
+        #exp-openModalBtn:disabled {
+            background-color: #c9c9c9;
+            pointer-events: none;
+        }
+
+        #exp-openModalBtn:hover {
+            background-color: #40a9ff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            -webkit-app-region: no-drag;
+        }
+
+        #container {
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+            position: relative;
+            background: #fff;
+        }
+
+        #img {
+            display: block;
+            user-select: none;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        canvas.overlay,
+        canvas.mask {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        #selection {
+            position: absolute;
+            border: 2px solid #52c41a;
+            background: rgba(82, 196, 26, 0.1);
+            display: none;
+            box-sizing: border-box;
+            z-index: 4;
+        }
+
+        .handle {
+            width: 12px;
+            height: 12px;
+            background: #52c41a;
+            border-radius: 50%;
+            border: 1px solid #fff;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.4);
+            position: absolute;
+        }
+
+        .nw {
+            cursor: nw-resize;
+            top: -6px;
+            left: -6px;
+        }
+
+        .ne {
+            cursor: ne-resize;
+            top: -6px;
+            right: -6px;
+        }
+
+        .sw {
+            cursor: sw-resize;
+            bottom: -6px;
+            left: -6px;
+        }
+
+        .se {
+            cursor: se-resize;
+            bottom: -6px;
+            right: -6px;
+        }
+
+        .icon-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 38px;
+            height: 39px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(255, 255, 255, 0.05);
+            color: #c11818;
+            font-size: 34px;
+            cursor: pointer;
+            -webkit-app-region: no-drag;
+        }
+
+        .icon-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            -webkit-app-region: no-drag;
+            scale: calc(1.05);
+        }
+
+
+        #refreshBtn {
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-app-region: no-drag;
+            /* width: 58px; */
+        }
+
+        #refreshBtn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            -webkit-app-region: no-drag;
+            scale: calc(1.05);
+        }
+    </style>
+    <style>
+        .exp-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: exp-fadeIn 0.3s ease forwards;
+        }
+
+        .exp-modal {
+            background: #fff;
+            border-radius: 10px;
+            width: 480px;
+            max-width: 95%;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            transform: translateY(-50px);
+            opacity: 0;
+            animation: exp-slideIn 0.3s forwards;
+            position: relative;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .exp-modal .exp-close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 22px;
+            cursor: pointer;
+            color: #888;
+            transition: color 0.2s;
+        }
+
+        .exp-modal .exp-close-btn:hover {
+            color: #333;
+        }
+
+        .exp-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .exp-tab {
+            padding: 8px 16px;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            background: #f0f2f5;
+            color: #555;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .exp-tab.exp-active {
+            background: #fff;
+            color: #1890ff;
+            font-weight: 600;
+            border: 1px solid #d9d9d9;
+            border-bottom: none;
+        }
+
+        .exp-tab-content {
+            display: none;
+        }
+
+        .exp-tab-content.exp-active {
+            display: block;
+            animation: exp-fadeIn 0.3s ease forwards;
+        }
+
+        .exp-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .exp-table th,
+        .exp-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e8e8e8;
+            text-align: left;
+        }
+
+        .exp-table tr.exp-selected {
+            background-color: #e6f7ff;
+        }
+
+        .exp-file-path input {
+            width: calc(100% - 20px);
+            padding: 8px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: border 0.2s;
+        }
+
+        .exp-file-path input:hover {
+            border-color: #1890ff;
+        }
+
+        .exp-export-btn {
+            margin-top: 20px;
+            width: 100%;
+            padding: 10px 0;
+            background-color: #1890ff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .exp-export-btn:hover {
+            background-color: #096dd9;
+        }
+
+        .exp-export-btn:disabled {
+            background-color: #9e9e9e;
+        }
+
+        @keyframes exp-fadeIn {
+            from {
+                opacity: 0
+            }
+
+            to {
+                opacity: 1
+            }
+        }
+
+        @keyframes exp-slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .fileNamePng {
+            width: calc(100% - 20px);
+            padding: 8px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border 0.2s;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="controls">
+        <button class="icon-close" aria-label="Close icons tab">&times;</button>
+        <button disabled id="exp-openModalBtn">Export</button>
+        <button id="refreshBtn">
+            <svg style="height:24px; width:24px" fill="#000000" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                <g id="SVGRepo_iconCarrier">
+                    <path
+                        d="M19.146 4.854l-1.489 1.489A8 8 0 1 0 12 20a8.094 8.094 0 0 0 7.371-4.886 1 1 0 1 0-1.842-.779A6.071 6.071 0 0 1 12 18a6 6 0 1 1 4.243-10.243l-1.39 1.39a.5.5 0 0 0 .354.854H19.5A.5.5 0 0 0 20 9.5V5.207a.5.5 0 0 0-.854-.353z">
+                    </path>
+                </g>
+            </svg>
+        </button>
+    </div>
+
+    <div id="container">
+        <img id="img" src="" alt="Upload image">
+        <canvas id="mask" class="mask"></canvas>
+        <canvas id="overlay" class="overlay"></canvas>
+        <div id="selection">
+            <div class="handle nw"></div>
+            <div class="handle ne"></div>
+            <div class="handle sw"></div>
+            <div class="handle se"></div>
+        </div>
+    </div>
+
+    <div class="exp-modal-overlay" id="exp-modalOverlay">
+        <div class="exp-modal">
+            <span class="exp-close-btn" id="exp-closeModal">&times;</span>
+
+            <div class="exp-tabs">
+                <div class="exp-tab exp-active" data-tab="exp-settings">Indices</div>
+                <div class="exp-tab" data-tab="exp-filesystem">Fichier</div>
+            </div>
+
+            <div class="exp-tab-content exp-active" id="exp-settings">
+                <p>Select an option from the table:</p>
+                <table class="exp-table">
+                    <thead>
+                        <tr>
+                            <th>Option</th>
+                            <th>Description</th>
+                            <th>Selectionner</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Fight</td>
+                            <td>Detection de combat</td>
+                            <td><button id="on_fight" class="exp-export-btn export_replace">Remplacer</button></td>
+                        </tr>
+                        <tr>
+                            <td>Turn_start</td>
+                            <td>Detection de debut tour</td>
+                            <td><button id="turn_on" class="exp-export-btn export_replace">Remplacer</button></td>
+                        </tr>
+                        <tr>
+                            <td>Turn_end</td>
+                            <td>Detection de fin tour</td>
+                            <td><button id="turn_off" class="exp-export-btn export_replace">Remplacer</button></td>
+                        </tr>
+                        <tr>
+                            <td>Group</td>
+                            <td>Detection d'invitation group</td>
+                            <td><button id="on_group" class="exp-export-btn export_replace">Remplacer</button></td>
+                        </tr>
+                        <tr>
+                            <td>Group_accept</td>
+                            <td>Detection du button accepter</td>
+                            <td><button id="accept_group" class="exp-export-btn export_replace">Remplacer</button></td>
+                        </tr>
+                        <tr>
+                            <td>Exchange</td>
+                            <td>Detection de demande d'echange</td>
+                            <td><button id="on_exchange" class="exp-export-btn export_replace">Remplacer</button></td>
+                        </tr>
+                        <tr>
+                            <td>Exchange_Accepted</td>
+                            <td>Detection de demande d'echange acceptée</td>
+                            <td><button id="exchange_accepted" class="exp-export-btn export_replace">Remplacer</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Exchange_Accept</td>
+                            <td>Detection de button accepter</td>
+                            <td><button id="accept_exchange" class="exp-export-btn export_replace">Remplacer</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Exchange_Validate</td>
+                            <td>Detection de button valider</td>
+                            <td><button id="validate_exchange" class="exp-export-btn export_replace">Remplacer</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Inactivity</td>
+                            <td>Detection de fenêtre d'inactivité</td>
+                            <td><button id="on_inactivity" class="exp-export-btn export_replace">Remplacer</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Inactivity_Ok</td>
+                            <td>Detection de bouton de ok</td>
+                            <td><button id="prevent_inactivity_ok" class="exp-export-btn export_replace">Remplacer</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class=" exp-tab-content" id="exp-filesystem">
+                <p>Select export fileName:</p>
+                <input class="fileNamePng" type="text" placeholder="export" id="exp-fileName">
+                <p>Select export folder:</p>
+                <div class="exp-file-path">
+                    <input type="text" placeholder="Click to select folder..." id="exp-filePath" readonly>
+                </div>
+                <button class="exp-export-btn" id="exp-exportBtn">Export</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const img = document.getElementById('img');
+        const overlay = document.getElementById('overlay');
+        const mask = document.getElementById('mask');
+        const sel = document.getElementById('selection');
+        const fileInput = document.getElementById('fileInput');
+        const exportBtn = document.getElementById('exportBtn');
+        const oCtx = overlay.getContext('2d');
+        const mCtx = mask.getContext('2d');
+        const closeBtn = document.querySelector(".icon-close");
+        const refreshBtn = document.getElementById('refreshBtn');
+        const expOpenModalBtn = document.getElementById('exp-openModalBtn');
+
+
+        let isDrawing = false, isSelecting = false, isMoving = false, isResizing = false, activeHandle = null;
+        let startX = 0, startY = 0, downClientX = 0, downClientY = 0;
+        let rect = { x: 0, y: 0, w: 0, h: 0 };
+
+        function fitCanvas() {
+            const imgRect = img.getBoundingClientRect();
+            overlay.width = mask.width = imgRect.width;
+            overlay.height = mask.height = imgRect.height;
+            overlay.style.width = mask.style.width = imgRect.width + 'px';
+            overlay.style.height = mask.style.height = imgRect.height + 'px';
+            overlay.style.left = mask.style.left = img.offsetLeft + 'px';
+            overlay.style.top = mask.style.top = img.offsetTop + 'px';
+            sel.style.display = 'none';
+            clearOverlay(); clearMask();
+        }
+
+        window.appContext.onImageContent(({ data, width, height, processId }) => {
+            const binary = atob(data);
+            const len = binary.length;
+            const array = new Uint8Array(len);
+            for (let i = 0; i < len; i++) array[i] = binary.charCodeAt(i);
+            const blob = new Blob([array], { type: "image/png" });
+            const url = URL.createObjectURL(blob);
+            img.src = url;
+            window.current_process_id = processId;
+        });
+
+        img.addEventListener('load', fitCanvas);
+        window.addEventListener('resize', fitCanvas);
+
+        refreshBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!window.current_process_id) {
+                return;
+            }
+            isMoving = false;
+            isResizing = false;
+            isSelecting = false;
+            expOpenModalBtn.disabled = true;
+            return window.appContext.processImage(window.current_process_id)
+        })
+
+        function clearOverlay() { oCtx.clearRect(0, 0, overlay.width, overlay.height); }
+        function clearMask() { mCtx.clearRect(0, 0, mask.width, mask.height); }
+
+        function getMousePos(evt) {
+            const rectOverlay = overlay.getBoundingClientRect();
+            let x = evt.clientX - rectOverlay.left;
+            let y = evt.clientY - rectOverlay.top;
+            return { x, y };
+        }
+
+        function drawPreview(x, y, w, h) {
+            clearOverlay();
+            oCtx.setLineDash([6, 4]);
+            oCtx.strokeStyle = '#52c41a';
+            oCtx.lineWidth = 2;
+            oCtx.strokeRect(x, y, w, h);
+        }
+
+        function drawMask() {
+            clearMask();
+            mCtx.fillStyle = 'rgba(0,0,0,0.6)';
+            mCtx.fillRect(0, 0, mask.width, mask.height);
+            mCtx.clearRect(rect.x, rect.y, rect.w, rect.h);
+        }
+
+        function updateSelectionDiv() {
+            sel.style.left = rect.x + 'px';
+            sel.style.top = rect.y + 'px';
+            sel.style.width = rect.w + 'px';
+            sel.style.height = rect.h + 'px';
+            sel.style.display = 'block';
+        }
+
+        overlay.addEventListener('pointerdown', e => {
+            if (isSelecting) return;
+            isDrawing = true;
+            const pos = getMousePos(e);
+            startX = pos.x; startY = pos.y;
+            rect = { x: startX, y: startY, w: 0, h: 0 };
+        });
+
+        overlay.addEventListener('pointermove', e => {
+            if (!isDrawing) return;
+            const pos = getMousePos(e);
+            rect.w = pos.x - startX;
+            rect.h = pos.y - startY;
+            drawPreview(startX, startY, rect.w, rect.h);
+        });
+
+        overlay.addEventListener('pointerup', e => {
+            if (!isDrawing) return;
+            isDrawing = false;
+            if (rect.w < 0) { rect.x += rect.w; rect.w = -rect.w; }
+            if (rect.h < 0) { rect.y += rect.h; rect.h = -rect.h; }
+            if (rect.w < 6 || rect.h < 6) { clearOverlay(); return; }
+            isSelecting = true;
+            clearOverlay(); drawMask(); updateSelectionDiv();
+            expOpenModalBtn.disabled = false;
+        });
+
+        sel.addEventListener('pointerdown', e => {
+            if (e.target.classList.contains('handle')) return;
+            e.preventDefault();
+            isMoving = true;
+            downClientX = e.clientX; downClientY = e.clientY;
+            sel.setPointerCapture && sel.setPointerCapture(e.pointerId);
+        });
+
+        sel.querySelectorAll('.handle').forEach(h => {
+            h.addEventListener('pointerdown', e => {
+                e.preventDefault(); e.stopPropagation();
+                isResizing = true;
+                activeHandle = Array.from(e.target.classList).find(c => ['nw', 'ne', 'sw', 'se'].includes(c));
+                downClientX = e.clientX; downClientY = e.clientY;
+                e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId);
+            });
+        });
+
+        document.addEventListener('pointermove', e => {
+            if (isMoving) {
+                const cur = getMousePos(e);
+                const prev = getMousePos({ clientX: downClientX, clientY: downClientY });
+                rect.x += cur.x - prev.x;
+                rect.y += cur.y - prev.y;
+                rect.x = Math.max(0, Math.min(rect.x, overlay.width - rect.w));
+                rect.y = Math.max(0, Math.min(rect.y, overlay.height - rect.h));
+                downClientX = e.clientX; downClientY = e.clientY;
+                drawMask(); updateSelectionDiv();
+            } else if (isResizing) {
+                const cur = getMousePos(e);
+                const prev = getMousePos({ clientX: downClientX, clientY: downClientY });
+                const dx = cur.x - prev.x, dy = cur.y - prev.y;
+                if (activeHandle === 'nw') { rect.x += dx; rect.y += dy; rect.w -= dx; rect.h -= dy; }
+                if (activeHandle === 'ne') { rect.y += dy; rect.w += dx; rect.h -= dy; }
+                if (activeHandle === 'sw') { rect.x += dx; rect.w -= dx; rect.h += dy; }
+                if (activeHandle === 'se') { rect.w += dx; rect.h += dy; }
+                if (rect.w < 6) rect.w = 6; if (rect.h < 6) rect.h = 6;
+                downClientX = e.clientX; downClientY = e.clientY;
+                drawMask(); updateSelectionDiv();
+            }
+        });
+
+        document.addEventListener('pointerup', e => { isMoving = false; if (isResizing) { isResizing = false; activeHandle = null; } });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                isSelecting = false; isDrawing = false; isMoving = false; isResizing = false; activeHandle = null;
+                sel.style.display = 'none'; clearOverlay(); clearMask();
+                expOpenModalBtn.disabled = true;
+            }
+        });
+
+        closeBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.contextApi && window.appContext.hideImageCropper();
+        });
+
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64Data = reader.result.split(',')[1];
+                    resolve(base64Data);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        function getCurrentSelection() {
+            const scaleX = img.naturalWidth / overlay.width;
+            const scaleY = img.naturalHeight / overlay.height;
+
+            const cropX = Math.round(rect.x * scaleX);
+            const cropY = Math.round(rect.y * scaleY);
+            const cropW = Math.round(rect.w * scaleX);
+            const cropH = Math.round(rect.h * scaleY);
+
+            const cropCanvas = document.createElement("canvas");
+            cropCanvas.width = cropW;
+            cropCanvas.height = cropH;
+
+            const ctx = cropCanvas.getContext("2d");
+            ctx.imageSmoothingEnabled = false;
+
+            ctx.drawImage(
+                img,
+                cropX, cropY, cropW, cropH,
+                0, 0, cropW, cropH
+            );
+
+            return new Promise(resolve => {
+                cropCanvas.toBlob(async blob => {
+                    const base64 = await blobToBase64(blob);
+                    resolve({
+                        base64,
+                        rect: { x: cropX, y: cropY, w: cropW, h: cropH },
+                        from: {
+                            originalWidth: img.naturalWidth,
+                            originalHeight: img.naturalHeight
+                        }
+                    });
+                }, "image/png");
+            });
+        }
+    </script>
+
+    <script>
+        const expModalOverlay = document.getElementById('exp-modalOverlay');
+        const expCloseModal = document.getElementById('exp-closeModal');
+        const selectFsFilePath = document.getElementById('exp-filePath');
+        const selectFsFileName = document.getElementById('exp-fileName');
+        const exportFileBtn = document.getElementById('exp-exportBtn');
+
+        expOpenModalBtn.addEventListener('click', () => expModalOverlay.style.display = 'flex');
+        expCloseModal.addEventListener('click', () => expModalOverlay.style.display = 'none');
+
+        const expTabs = document.querySelectorAll('.exp-tab');
+        const expTabContents = document.querySelectorAll('.exp-tab-content');
+        expTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                expTabs.forEach(t => t.classList.remove('exp-active'));
+                tab.classList.add('exp-active');
+                const target = tab.dataset.tab;
+                expTabContents.forEach(tc => tc.classList.remove('exp-active'));
+                document.getElementById(target).classList.add('exp-active');
+            });
+        });
+
+        const expRows = document.querySelectorAll('#exp-settings tbody tr');
+        expRows.forEach(row => {
+            row.addEventListener('click', () => {
+                expRows.forEach(r => r.classList.remove('exp-selected'));
+                row.classList.add('exp-selected');
+            });
+        });
+
+        selectFsFilePath.addEventListener('click', async () => {
+            const folderPath = await window.appContext.ipcRenderer.invoke('select-export-folder');
+            if (folderPath) window.selectedPath = selectFsFilePath.value = folderPath;
+        });
+
+        exportFileBtn.addEventListener('click', async (e) => {
+            if (e.target.disabled) {
+                return;
+            }
+
+            if (!isSelecting) {
+                await window.appContext.notify("warn", "No selection!");
+                return;
+            }
+            else if (!selectFsFileName.value) {
+                await window.appContext.notify("warn", "Filename required.");
+                return;
+            }
+            else if (!window.selectedPath) {
+                selectFsFilePath.click();
+                return;
+            }
+
+            e.target.disabled = true;
+
+            const selectionPng = await getCurrentSelection();
+
+            await window.appContext.ipcRenderer.invoke(
+                'export_crop',
+                window.selectedPath.toString(),
+                selectFsFileName.value.toString(),
+                selectionPng
+            ).catch(err => 1);
+
+            e.target.disabled = false;
+
+            delete window.selectedPath;
+            selectFsFileName.value = "";
+            selectFsFilePath.value = "";
+
+            expModalOverlay.style.display = 'none';
+        });
+    </script>
+
+    <script>
+        (function () {
+            const tableContainer = document.querySelector('#exp-settings');
+            const table = tableContainer.querySelector('.exp-table');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const maxHeight = 100; // max height in px
+            const paginationContainer = document.createElement('div');
+            paginationContainer.style.marginTop = '10px';
+            paginationContainer.style.display = 'flex';
+            paginationContainer.style.gap = '5px';
+            tableContainer.appendChild(paginationContainer);
+
+            let currentPage = 0;
+            let pages = [];
+
+            function paginateRows() {
+                pages = [];
+                let tempPage = [];
+                let tempHeight = 0;
+
+                const trHeights = rows.map(r => r.offsetHeight || 24);
+                for (let i = 0; i < rows.length; i++) {
+                    if (tempHeight + trHeights[i] > maxHeight && tempPage.length) {
+                        pages.push(tempPage);
+                        tempPage = [];
+                        tempHeight = 0;
+                    }
+                    tempPage.push(rows[i]);
+                    tempHeight += trHeights[i];
+                }
+                if (tempPage.length) pages.push(tempPage);
+            }
+
+            function renderPage(pageIndex) {
+                tbody.innerHTML = '';
+                pages[pageIndex].forEach(r => tbody.appendChild(r));
+                currentPage = pageIndex;
+                renderPaginationButtons();
+                const replaceIds = document.querySelectorAll('.export_replace');
+                for (let replacer of replaceIds) {
+                    replacer.addEventListener('click', async function (e) {
+
+                        if (e.target.disabled) {
+                            return;
+                        }
+
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        e.target.disabled = true;
+
+                        const selectionPng = await getCurrentSelection();
+
+                        await window.appContext.ipcRenderer.invoke(
+                            'replace_hint',
+                            e.target.id,
+                            selectionPng
+                        ).catch(err => 1);
+
+                        e.target.disabled = false;
+
+                        expModalOverlay.style.display = 'none';
+                    });
+                }
+            }
+
+            function renderPaginationButtons() {
+                paginationContainer.innerHTML = '';
+                pages.forEach((_, idx) => {
+                    const btn = document.createElement('button');
+                    btn.textContent = (idx + 1);
+                    btn.style.padding = '3px 8px';
+                    btn.style.cursor = 'pointer';
+                    if (idx === currentPage) btn.style.fontWeight = 'bold';
+                    btn.addEventListener('click', () => renderPage(idx));
+                    paginationContainer.appendChild(btn);
+                });
+            }
+
+            paginateRows();
+            renderPage(0);
+
+            window.addEventListener('resize', () => {
+                paginateRows();
+                renderPage(0);
+            });
+        })();
+    </script>
+
+</body>
+
+</html>

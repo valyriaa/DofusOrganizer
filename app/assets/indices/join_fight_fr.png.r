@@ -1,0 +1,1 @@
+{"rect":{"x":114,"y":390,"w":62,"h":16},"from":{"originalWidth":1499,"originalHeight":886}}

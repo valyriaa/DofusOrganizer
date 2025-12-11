@@ -1,0 +1,71 @@
+name: Build & Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '24'
+
+      - name: Read version from package.json
+        id: version
+        shell: cmd
+        run: |
+           for /f %%i in ('node -p "require('./app/package.json').version"') do set VERSION=%%i
+           echo VERSION=%VERSION%>> %GITHUB_ENV%
+           echo Detected version: %VERSION%
+
+      - name: Install app dependencies
+        working-directory: ./app
+        run: npm install
+
+      - name: Package x64
+        working-directory: ./app
+        run: npm run package:x64
+
+      - name: Package ia32
+        working-directory: ./app
+        run: npm run package:ia32
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          allowUpdates: true
+          makeLatest: true
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Upload x64 artifact
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./app/release/dofus-organizer-x64.zip
+          asset_name: dofus-organizer-x64.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Upload ia32 artifact
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./app/release/dofus-organizer-ia32.zip
+          asset_name: dofus-organizer-ia32.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}

@@ -1,0 +1,16 @@
+{
+  "name": "matcher",
+  "version": "1.0.0",
+  "main": "index.js",
+  "gypfile": true,
+  "dependencies": {
+    "bindings": "^1.5.0",
+    "jimp": "^1.6.0",
+    "node-addon-api": "^4.3.0",
+    "pngjs": "^7.0.0",
+    "unzipper": "^0.12.3"
+  },
+  "scripts": {
+    "install": "node-gyp configure build"
+  }
+}

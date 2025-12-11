@@ -1,0 +1,33 @@
+{
+  "name": "organizer-dofus",
+  "version": "1.0.0",
+  "website": "https://organizer-dofus.com",
+  "description": "Gérez facilement vos fenêtres Dofus, votre gameplay, vos quêtes et bien plus encore !",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron --inspect-brk=9222 .",
+    "build:core:ia32": "cd ../core && set target_arch=ia32 && npm install",
+    "build:core:x64": "cd ../core && set target_arch=x64 && npm install",
+    "package:ia32": "npm run build:core:ia32 && node build.js ia32",
+    "package:x64": "npm run build:core:x64 && node build.js x64"
+  },
+  "author": "app",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^26.2.0",
+    "electron-packager": "^17.1.0",
+    "esbuild": "^0.18.18",
+    "asar": "^3.2.0",
+    "node-gyp": "^12.1.0"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "electron-packager": "^17.1.2",
+    "esbuild": "^0.27.1",
+    "frida": "^17.5.1",
+    "jimp": "^1.6.0",
+    "node-addon-api": "^8.5.0",
+    "pngjs": "^7.0.0"
+  }
+}

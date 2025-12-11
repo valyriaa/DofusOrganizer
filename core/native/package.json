@@ -1,0 +1,18 @@
+{
+  "name": "native",
+  "version": "1.0.0",
+  "lib": "index.js",
+   "scripts": {
+    "install": "node-gyp rebuild && node build.js",
+    "preinstall": "node-gyp configure"
+  },
+  "gypfile": true,
+  "license": "MIT",
+  "devDependencies": {
+    "node-gyp": "^12.1.0"
+  },
+  "dependencies": {
+    "native": "file:",
+    "node-addon-api": "^8.5.0"
+  }
+}
