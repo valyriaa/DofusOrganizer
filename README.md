@@ -170,7 +170,7 @@ npm run package:x64
 
 Feel free to open issues or PRs.
 
-Questions? Join the community [**Discord**](https://discord.com/invite/organizer)
+Questions? Join the community [**Discord**](https://discord.com/invite/DvW6tqeb)
 
  
 ------------------------------------------------------------------------
